@@ -1,0 +1,58 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+*.env
+.env
+*.db
+*.sqlite3
+*.log
+*.pid
+
+# LangChain cache or logs (if any)
+.cache/
+logs/
+
+# VS Code
+.vscode/
+.history/
+
+# Streamlit
+.streamlit/
+*.streamlit-credentials.json
+
+# FAISS + Docstore
+*.bin
+*.jsonl
+docstore.json
+faiss_index.bin
+chat_logs.json
+feedback.json
+
+# Jupyter or IPython
+.ipynb_checkpoints/
+
+# OS-specific
+.DS_Store
+Thumbs.db
+
+# Temp or test results
+*.xlsx
+test_*.py
+retry.ps1
+main_and_retry.ps1
+
+# Packages
+*.egg-info/
+dist/
+build/
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv/
+
+chromedriver.exe
