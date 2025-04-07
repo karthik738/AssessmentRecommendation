@@ -13,7 +13,8 @@ from openai import OpenAI
 class SHLRecommender:
     def __init__(self,
                 #  embed_model_name="BAAI/bge-small-en-v1.5",
-                embed_model_name="all-MiniLM-L6-v2",
+                # embed_model_name="all-MiniLM-L6-v2",
+                embed_model_name="sentence-transformers/paraphrase-MiniLM-L3-v2",
                  top_k=10,  # 🎯 Precision mode: fewer results
                  spell_threshold=0.7):
 
