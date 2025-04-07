@@ -13,8 +13,8 @@ class SHLRecommender:
                  top_k=10,
                  spell_threshold=0.7):
         base_path = os.path.dirname(os.path.abspath(__file__))
-        self.index_path = os.path.join(base_path, "../data/faiss_index.bin")
-        self.docstore_path = os.path.join(base_path, "../data/docstore.json")
+        self.index_path = os.path.join(base_path, "../data/faiss_index.idx")
+        self.docstore_path = os.path.join(base_path, "../data/index_metadata.json")
         self.top_k = top_k
         self.spell_threshold = spell_threshold
 

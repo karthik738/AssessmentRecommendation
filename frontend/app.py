@@ -1,45 +1,45 @@
+# 📁 frontend/app.py
+
 import streamlit as st
 import pandas as pd
 import requests
 import google.generativeai as genai
-import numpy as np
 import os
 
-# Constants
-API_URL = "https://assessmentrecommendation.onrender.com/recommend"  # Backend POST endpoint
+# ===== CONFIG =====
+GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")  # Replace with your actual Gemini API key
 GEMINI_MODEL = "models/embedding-001"
+API_URL = "https://assessmentrecommendation.onrender.com/recommend"
+# API_URL="http://localhost:9000/recommend"  # For local testing
 
-# Streamlit UI setup
+# ===== Setup =====
 st.set_page_config(page_title="SHL Assessment Recommender", layout="wide")
 st.title("🔍 SHL Assessment Recommendation System")
 st.markdown("""
 Enter a **natural language query** or paste a **job description**, and we'll recommend up to 10 SHL assessments.
 """)
 
-# Input field
+# ===== Configure Gemini =====
+genai.configure(api_key=GOOGLE_API_KEY)
+
+# ===== Input field =====
 query = st.text_area("Paste Job Description or Query", height=150)
 
-# Load Gemini config
-@st.cache_resource
-def load_gemini_model():
-    genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-    return genai.GenerativeModel(GEMINI_MODEL)
-
-# Embed query using Gemini
+# ===== Embed query with Gemini =====
 def embed_query(text):
-    model = load_gemini_model()
-    embedding_response = model.embed_content(
+    response = genai.embed_content(
+        model=GEMINI_MODEL,
         content=text,
-        task_type="retrieval_document"
+        task_type="RETRIEVAL_DOCUMENT"
     )
-    return embedding_response["embedding"]
+    return response["embedding"]
 
-# When user clicks
+# ===== On button click =====
 if st.button("Get Recommendations"):
     if not query.strip():
         st.warning("Please enter a query or job description.")
     else:
-        with st.spinner("Embedding query with Gemini and fetching recommendations..."):
+        with st.spinner("🔍 Embedding query and fetching recommendations..."):
             try:
                 vector = embed_query(query)
 
@@ -56,8 +56,8 @@ if st.button("Get Recommendations"):
                     if "downloads" in df.columns:
                         df["downloads"] = df["downloads"].apply(
                             lambda items: "\n".join(
-                                [f"[{d['title']}]({d['url']}) ({d['language']})" for d in items if d['url']]
-                            )
+                                [f"[{d['title']}]({d['url']}) ({d['language']})" for d in items if d.get("url")]
+                            ) if items else ""
                         )
 
                     df = df.rename(columns={

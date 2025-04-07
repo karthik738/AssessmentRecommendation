@@ -44,5 +44,6 @@ def read_root():
 
 @app.post("/recommend", response_model=List[Recommendation])
 def recommend_from_vector(req: QueryVector):
+    # print("✅ POST received. Vector length:", len(req.vector))
     """Recommend assessments based on pre-embedded vector input."""
     return recommender.recommend_detailed(req.vector)
