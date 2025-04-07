@@ -1,45 +1,50 @@
-# 📁 streamlit_app/app.py
-
 import streamlit as st
-import requests
 import pandas as pd
+import requests
+import google.generativeai as genai
+import numpy as np
 import os
-from sentence_transformers import SentenceTransformer
-from huggingface_hub import login
 
-API_URL = "https://assessmentrecommendation.onrender.com/recommend"
-EMBED_MODEL = "BAAI/bge-small-en-v1.5"
+# Constants
+API_URL = "https://assessmentrecommendation.onrender.com/recommend"  # Backend POST endpoint
+GEMINI_MODEL = "models/embedding-001"
 
-# Set Streamlit page config
+# Streamlit UI setup
 st.set_page_config(page_title="SHL Assessment Recommender", layout="wide")
 st.title("🔍 SHL Assessment Recommendation System")
 st.markdown("""
 Enter a **natural language query** or paste a **job description**, and we'll recommend up to 10 SHL assessments.
 """)
 
-# Load embedding model once with Hugging Face token
-@st.cache_resource
-def load_model():
-    hf_token = st.secrets["HUGGINGFACE_TOKEN"]
-    # os.environ["HF_TOKEN"] = hf_token
-    # login(hf_token)
-    return SentenceTransformer(EMBED_MODEL, use_auth_token=hf_token)
-
-model = load_model()
-
-# Text input
+# Input field
 query = st.text_area("Paste Job Description or Query", height=150)
 
-# Button action
+# Load Gemini config
+@st.cache_resource
+def load_gemini_model():
+    genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
+    return genai.GenerativeModel(GEMINI_MODEL)
+
+# Embed query using Gemini
+def embed_query(text):
+    model = load_gemini_model()
+    embedding_response = model.embed_content(
+        content=text,
+        task_type="retrieval_document"
+    )
+    return embedding_response["embedding"]
+
+# When user clicks
 if st.button("Get Recommendations"):
     if not query.strip():
         st.warning("Please enter a query or job description.")
     else:
-        with st.spinner("Embedding query and fetching recommendations..."):
+        with st.spinner("Embedding query with Gemini and fetching recommendations..."):
             try:
-                embedding = model.encode(query).tolist()
+                vector = embed_query(query)
 
-                response = requests.post(API_URL, json={"vector": embedding})
+                # Send to backend
+                response = requests.post(API_URL, json={"vector": vector})
                 response.raise_for_status()
                 results = response.json()
 
@@ -69,4 +74,4 @@ if st.button("Get Recommendations"):
                     st.dataframe(df, use_container_width=True)
 
             except Exception as e:
-                st.error(f"❌ Failed to fetch recommendations: {str(e)}")
+                st.error(f"❌ Error: {str(e)}")
