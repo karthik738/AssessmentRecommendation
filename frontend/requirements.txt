@@ -2,3 +2,4 @@ streamlit
 pandas
 requests
 sentence-transformers
+huggingface-hub

@@ -3,7 +3,9 @@
 import streamlit as st
 import requests
 import pandas as pd
+import os
 from sentence_transformers import SentenceTransformer
+from huggingface_hub import login
 
 API_URL = "https://assessmentrecommendation.onrender.com/recommend"
 EMBED_MODEL = "BAAI/bge-small-en-v1.5"
@@ -15,27 +17,28 @@ st.markdown("""
 Enter a **natural language query** or paste a **job description**, and we'll recommend up to 10 SHL assessments.
 """)
 
-# Text input
-query = st.text_area("Paste Job Description or Query", height=150)
-
-# Load embedding model once
+# Load embedding model once with Hugging Face token
 @st.cache_resource
 def load_model():
-    return SentenceTransformer(EMBED_MODEL)
+    hf_token = st.secrets["HUGGINGFACE_TOKEN"]
+    os.environ["HF_TOKEN"] = hf_token
+    login(hf_token)
+    return SentenceTransformer(EMBED_MODEL, use_auth_token=hf_token)
 
 model = load_model()
 
-# When user clicks the button
+# Text input
+query = st.text_area("Paste Job Description or Query", height=150)
+
+# Button action
 if st.button("Get Recommendations"):
     if not query.strip():
         st.warning("Please enter a query or job description.")
     else:
         with st.spinner("Embedding query and fetching recommendations..."):
             try:
-                # Embed query using same model as FAISS
                 embedding = model.encode(query).tolist()
 
-                # Call backend with vector
                 response = requests.post(API_URL, json={"vector": embedding})
                 response.raise_for_status()
                 results = response.json()
