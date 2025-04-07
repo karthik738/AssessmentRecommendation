@@ -24,7 +24,6 @@ logs/
 *.streamlit-credentials.json
 
 # FAISS + Docstore
-*.bin
 *.jsonl
 
 # Jupyter or IPython
