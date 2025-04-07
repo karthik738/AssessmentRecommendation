@@ -12,9 +12,9 @@ from openai import OpenAI
 
 class SHLRecommender:
     def __init__(self,
-                #  embed_model_name="BAAI/bge-small-en-v1.5",
+                 embed_model_name="BAAI/bge-small-en-v1.5",
                 # embed_model_name="all-MiniLM-L6-v2",
-                embed_model_name="sentence-transformers/paraphrase-MiniLM-L3-v2",
+                # embed_model_name="sentence-transformers/paraphrase-MiniLM-L3-v2",
                  top_k=10,  # 🎯 Precision mode: fewer results
                  spell_threshold=0.7):
 
@@ -25,7 +25,7 @@ class SHLRecommender:
         self.top_k = top_k
         self.spell_threshold = spell_threshold
 
-        self.model = SentenceTransformer(embed_model_name)
+        # self.model = SentenceTransformer(embed_model_name)
         self.index = faiss.read_index(self.index_path)
 
         with open(self.docstore_path, "r", encoding="utf-8") as f:

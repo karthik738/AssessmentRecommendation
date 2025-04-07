@@ -26,10 +26,6 @@ logs/
 # FAISS + Docstore
 *.bin
 *.jsonl
-docstore.json
-faiss_index.bin
-chat_logs.json
-feedback.json
 
 # Jupyter or IPython
 .ipynb_checkpoints/
