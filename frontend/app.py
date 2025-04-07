@@ -6,36 +6,36 @@ import pandas as pd
 from sentence_transformers import SentenceTransformer
 
 API_URL = "https://assessmentrecommendation.onrender.com/recommend"
-EMBED_MODEL = "sentence-transformers/paraphrase-MiniLM-L3-v2"
+EMBED_MODEL = "BAAI/bge-small-en-v1.5"
 
-# Set page layout
+# Set Streamlit page config
 st.set_page_config(page_title="SHL Assessment Recommender", layout="wide")
 st.title("🔍 SHL Assessment Recommendation System")
 st.markdown("""
 Enter a **natural language query** or paste a **job description**, and we'll recommend up to 10 SHL assessments.
 """)
 
-# Input query
+# Text input
 query = st.text_area("Paste Job Description or Query", height=150)
 
-# Embed model init (cache to avoid reload)
+# Load embedding model once
 @st.cache_resource
 def load_model():
     return SentenceTransformer(EMBED_MODEL)
 
 model = load_model()
 
-# Button handler
+# When user clicks the button
 if st.button("Get Recommendations"):
     if not query.strip():
         st.warning("Please enter a query or job description.")
     else:
         with st.spinner("Embedding query and fetching recommendations..."):
             try:
-                # Embed user query
+                # Embed query using same model as FAISS
                 embedding = model.encode(query).tolist()
 
-                # Send vector to backend
+                # Call backend with vector
                 response = requests.post(API_URL, json={"vector": embedding})
                 response.raise_for_status()
                 results = response.json()
@@ -45,7 +45,6 @@ if st.button("Get Recommendations"):
                 else:
                     df = pd.DataFrame(results)
 
-                    # Format downloads into readable links
                     if "downloads" in df.columns:
                         df["downloads"] = df["downloads"].apply(
                             lambda items: "\n".join(
@@ -53,7 +52,6 @@ if st.button("Get Recommendations"):
                             )
                         )
 
-                    # Clean column headers
                     df = df.rename(columns={
                         "name": "Assessment Name",
                         "url": "Assessment URL",
@@ -64,9 +62,8 @@ if st.button("Get Recommendations"):
                         "downloads": "Downloads"
                     })
 
-                    # Show recommendations
                     st.markdown("### 📋 Top Recommendations")
                     st.dataframe(df, use_container_width=True)
 
             except Exception as e:
-                st.error(f"Failed to fetch recommendations: {str(e)}")
+                st.error(f"❌ Failed to fetch recommendations: {str(e)}")
