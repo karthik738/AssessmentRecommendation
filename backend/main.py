@@ -2,7 +2,7 @@
 
 from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
-from backend.recommender import SHLRecommender
+from recommender import SHLRecommender
 from pydantic import BaseModel
 from typing import List
 from typing import Optional
@@ -33,6 +33,11 @@ class Recommendation(BaseModel):
     duration: str
     test_types: List[str]
     downloads: Optional[List[Download]] = []
+
+
+@app.get("/")
+def read_root():
+    return {"message": "Welcome to the SHL Assessment Recommender API!"}
 
 @app.get("/recommend", response_model=List[Recommendation])
 def get_recommendations(q: str = Query(..., description="Query or Job Description")):

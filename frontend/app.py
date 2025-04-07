@@ -4,7 +4,7 @@ import streamlit as st
 import requests
 import pandas as pd
 
-API_URL = "http://localhost:8000/recommend"  # Change to your deployed URL when hosting
+API_URL = "https://assessmentrecommendation-production.up.railway.app/recommend"
 
 st.set_page_config(page_title="SHL Assessment Recommender", layout="wide")
 st.title("🔍 SHL Assessment Recommendation System")

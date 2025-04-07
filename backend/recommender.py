@@ -13,21 +13,20 @@ from openai import OpenAI
 class SHLRecommender:
     def __init__(self,
                  embed_model_name="BAAI/bge-small-en-v1.5",
-                 index_path="data/faiss_index.bin",
-                 docstore_path="data/docstore.json",
                  top_k=10,  # 🎯 Precision mode: fewer results
                  spell_threshold=0.7):
 
+        base_path = os.path.dirname(os.path.abspath(__file__))  # Points to backend/
+        self.index_path = os.path.join(base_path, "../data/faiss_index.bin")
+        self.docstore_path = os.path.join(base_path, "../data/docstore.json")
         self.embed_model_name = embed_model_name
-        self.index_path = index_path
-        self.docstore_path = docstore_path
         self.top_k = top_k
         self.spell_threshold = spell_threshold
 
         self.model = SentenceTransformer(embed_model_name)
-        self.index = faiss.read_index(index_path)
+        self.index = faiss.read_index(self.index_path)
 
-        with open(docstore_path, "r", encoding="utf-8") as f:
+        with open(self.docstore_path, "r", encoding="utf-8") as f:
             self.docstore = json.load(f)
 
         self.product_names = [doc["name"] for doc in self.docstore]
