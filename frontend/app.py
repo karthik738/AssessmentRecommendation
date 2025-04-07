@@ -21,8 +21,8 @@ Enter a **natural language query** or paste a **job description**, and we'll rec
 @st.cache_resource
 def load_model():
     hf_token = st.secrets["HUGGINGFACE_TOKEN"]
-    os.environ["HF_TOKEN"] = hf_token
-    login(hf_token)
+    # os.environ["HF_TOKEN"] = hf_token
+    # login(hf_token)
     return SentenceTransformer(EMBED_MODEL, use_auth_token=hf_token)
 
 model = load_model()
