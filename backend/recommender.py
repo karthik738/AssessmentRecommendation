@@ -1,31 +1,23 @@
-# 📁 recommender/core.py
+# 📁 recommender.py
 
 import os
 import json
 import faiss
 import numpy as np
-from datetime import datetime
-from sentence_transformers import SentenceTransformer, util
-from difflib import get_close_matches
 import re
+from difflib import get_close_matches
 from openai import OpenAI
 
 class SHLRecommender:
     def __init__(self,
-                 embed_model_name="BAAI/bge-small-en-v1.5",
-                # embed_model_name="all-MiniLM-L6-v2",
-                # embed_model_name="sentence-transformers/paraphrase-MiniLM-L3-v2",
-                 top_k=10,  # 🎯 Precision mode: fewer results
+                 top_k=10,
                  spell_threshold=0.7):
-
-        base_path = os.path.dirname(os.path.abspath(__file__))  # Points to backend/
+        base_path = os.path.dirname(os.path.abspath(__file__))
         self.index_path = os.path.join(base_path, "../data/faiss_index.bin")
         self.docstore_path = os.path.join(base_path, "../data/docstore.json")
-        self.embed_model_name = embed_model_name
         self.top_k = top_k
         self.spell_threshold = spell_threshold
 
-        # self.model = SentenceTransformer(embed_model_name)
         self.index = faiss.read_index(self.index_path)
 
         with open(self.docstore_path, "r", encoding="utf-8") as f:
@@ -43,17 +35,13 @@ class SHLRecommender:
         match = get_close_matches(query, self.product_names, n=1, cutoff=self.spell_threshold)
         return match[0] if match else None
 
-    def _search(self, query):
-        query_vec = self.model.encode([query], convert_to_numpy=True)
+    def search_by_vector(self, vector):
+        query_vec = np.array([vector], dtype="float32")
         _, indices = self.index.search(query_vec, self.top_k)
         return [self.docstore[i] for i in indices[0]]
 
-    def recommend(self, query):
-        match = self._fuzzy_match(query)
-        if match and match.lower() != query.lower():
-            query = match
-
-        results = self._search(query)
+    def recommend(self, embedded_vector):
+        results = self.search_by_vector(embedded_vector)
         return [
             {
                 "name": doc["name"],
@@ -63,12 +51,8 @@ class SHLRecommender:
             for doc in results
         ]
 
-    def recommend_detailed(self, query):
-        match = self._fuzzy_match(query)
-        if match and match.lower() != query.lower():
-            query = match
-
-        results = self._search(query)
+    def recommend_detailed(self, embedded_vector):
+        results = self.search_by_vector(embedded_vector)
 
         simplified = []
         for doc in results:
@@ -87,7 +71,7 @@ class SHLRecommender:
             }
             simplified.append(structured)
 
-        ranked = self._rerank_with_openrouter(query, simplified)
+        ranked = self._rerank_with_openrouter("vector", simplified)
         return ranked
 
     def _extract_duration(self, text):
@@ -152,7 +136,6 @@ Only include the sorted list as output.
                     return json.loads(match.group(0))
                 else:
                     raise ValueError("Could not extract valid JSON from LLM response.")
-
         except Exception as e:
             print(f"❌ Reranking failed: {str(e)}")
             return assessments
