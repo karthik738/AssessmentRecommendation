@@ -49,7 +49,12 @@ shl-recommender/
 ---
 
 ## 🖼️ Screenshots
-(Add here or link images/videos showing UI + API in action)
+![image](https://github.com/user-attachments/assets/30c52cfa-0501-4f48-88c5-f96560812d79)
+![image](https://github.com/user-attachments/assets/cbfcb84f-d190-436a-b536-92240bb14564)
+![image](https://github.com/user-attachments/assets/f33295b0-12da-40e1-b173-29f68c40b40f)
+![image](https://github.com/user-attachments/assets/9559bdf8-6bf6-4b4c-b179-beee1a55ba40)
+
+
 
 ---
 
