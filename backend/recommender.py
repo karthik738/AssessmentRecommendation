@@ -1,17 +1,14 @@
-# 📁 recommender.py
-
 import os
 import json
 import faiss
 import numpy as np
 import re
-from difflib import get_close_matches
 from openai import OpenAI
+import google.generativeai as genai
+
 
 class SHLRecommender:
-    def __init__(self,
-                 top_k=10,
-                 spell_threshold=0.7):
+    def __init__(self, top_k=10, spell_threshold=0.7):
         base_path = os.path.dirname(os.path.abspath(__file__))
         self.index_path = os.path.join(base_path, "../data/faiss_index.idx")
         self.docstore_path = os.path.join(base_path, "../data/index_metadata.json")
@@ -23,81 +20,70 @@ class SHLRecommender:
         with open(self.docstore_path, "r", encoding="utf-8") as f:
             self.docstore = json.load(f)
 
-        self.product_names = [doc["name"] for doc in self.docstore]
-
         self.llm_client = OpenAI(
             base_url="https://openrouter.ai/api/v1",
             api_key=os.getenv("OPENROUTER_API_KEY")
         )
         self.llm_model = "anthropic/claude-3-haiku"
 
-    def _fuzzy_match(self, query):
-        match = get_close_matches(query, self.product_names, n=1, cutoff=self.spell_threshold)
-        return match[0] if match else None
+    import google.generativeai as genai
+
+    def _embed_query(self, query: str) -> list:
+        try:
+            response = genai.embed_content(
+                model="models/embedding-001",
+                content=query,
+                task_type="RETRIEVAL_QUERY"
+            )
+            return response["embedding"]
+        except Exception as e:
+            print(f"❌ Gemini embedding failed: {e}")
+            return []
+
 
     def search_by_vector(self, vector):
         query_vec = np.array([vector], dtype="float32")
         _, indices = self.index.search(query_vec, self.top_k)
         return [self.docstore[i] for i in indices[0]]
 
-    def recommend(self, embedded_vector):
-        results = self.search_by_vector(embedded_vector)
-        return [
-            {
-                "name": doc["name"],
-                "link": doc["source"],
-                "snippet": doc["text"][:300] + "...",
-            }
-            for doc in results
-        ]
-
-    def recommend_detailed(self, embedded_vector):
+    def recommend_text(self, query: str):
+        embedded_vector = self._embed_query(query)
         results = self.search_by_vector(embedded_vector)
 
-        simplified = []
+        final = []
         for doc in results:
             text_raw = doc["text"]
-            text = text_raw.lower()
-            downloads = self._extract_downloads(text_raw)
+            text_lower = text_raw.lower()
 
             structured = {
-                "name": doc["name"],
                 "url": doc["source"],
-                "remote_testing": "yes" if "remote testing: yes" in text else "no",
-                "adaptive_irt": "yes" if "adaptive/irt: yes" in text else "no",
-                "duration": self._extract_duration(text),
-                "test_types": self._extract_test_types(text),
-                "downloads": downloads if downloads else []
+                "adaptive_support": "Yes" if "adaptive/irt: yes" in text_lower else "No",
+                "description": self._extract_description(text_raw),
+                "duration": self._extract_duration_int(text_raw),
+                "remote_support": "Yes" if "remote testing: yes" in text_lower else "No",
+                "test_type": self._extract_test_types(text_lower)
             }
-            simplified.append(structured)
 
-        ranked = self._rerank_with_openrouter("vector", simplified)
-        return ranked
+            final.append(structured)
 
-    def _extract_duration(self, text):
-        match = re.search(r"completion time in minutes\s*=\s*(\d+)", text)
-        return f"{match.group(1)} minutes" if match else "Unknown"
+        reranked = self._rerank_with_openrouter(query, final)
+        return reranked
+
+    def _extract_description(self, text):
+        match = re.search(r"Description:\s*(.*?)\s*Job Levels:", text, re.DOTALL)
+        return match.group(1).strip().replace("\n", " ") if match else "No description found."
+
+    def _extract_duration_int(self, text):
+        match = re.search(r"Completion Time in minutes\s*=\s*(\d+)", text, re.IGNORECASE)
+        return int(match.group(1)) if match else 0
 
     def _extract_test_types(self, text):
-        test_type_block = text.split("test types:")[-1].split("link:")[0].strip()
-        return [t.strip() for t in test_type_block.split(",") if t.strip()]
-
-    def _extract_downloads(self, text):
-        match = re.search(r"(?i)downloads:(.*?)(link:|$)", text, re.DOTALL)
-        if not match:
+        test_type_block = ""
+        try:
+            test_type_block = text.split("test types:")[-1].split("link:")[0].strip()
+        except Exception:
             return []
-
-        downloads_block = match.group(1)
-        matches = re.findall(r"([^:]+):\s*(https?://[^\s]+)\s*\(([^)]+)\)", downloads_block)
-
-        downloads = []
-        for title, url, language in matches:
-            downloads.append({
-                "title": title.strip(" -").strip(),
-                "url": url.strip(),
-                "language": language.strip()
-            })
-        return downloads
+        return [t.strip() for t in test_type_block.split(",") if t.strip()]
 
     def _rerank_with_openrouter(self, query, assessments):
         try:

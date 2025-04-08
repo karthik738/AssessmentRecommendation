@@ -1,14 +1,11 @@
-# 📁 backend/main.py — FastAPI backend for SHL recommender
-
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from recommender import SHLRecommender
 from pydantic import BaseModel
 from typing import List, Optional
+from recommender import SHLRecommender
 
 app = FastAPI(title="SHL Assessment Recommender")
 
-# CORS config to allow Streamlit frontend
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -16,34 +13,33 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Load FAISS + docstore
 recommender = SHLRecommender()
 
-# ✅ Input: Vector from frontend
-class QueryVector(BaseModel):
-    vector: List[float]
+# SHL Expected Input
+class QueryText(BaseModel):
+    query: str
 
-# ✅ Output structure
-class Download(BaseModel):
-    title: str
+# SHL Expected Output
+class Assessment(BaseModel):
     url: str
-    language: str
+    adaptive_support: str
+    description: str
+    duration: int
+    remote_support: str
+    test_type: List[str]
 
-class Recommendation(BaseModel):
-    name: str
-    url: str
-    remote_testing: str
-    adaptive_irt: str
-    duration: str
-    test_types: List[str]
-    downloads: Optional[List[Download]] = []
+class RecommendationResponse(BaseModel):
+    recommended_assessments: List[Assessment]
 
 @app.get("/")
 def read_root():
     return {"message": "Welcome to the SHL Assessment Recommender API!"}
 
-@app.post("/recommend", response_model=List[Recommendation])
-def recommend_from_vector(req: QueryVector):
-    # print("✅ POST received. Vector length:", len(req.vector))
-    """Recommend assessments based on pre-embedded vector input."""
-    return recommender.recommend_detailed(req.vector)
+@app.get("/health")
+def health_check():
+    return {"status": "healthy"}
+
+@app.post("/recommend", response_model=RecommendationResponse)
+def recommend_from_query(req: QueryText):
+    results = recommender.recommend_text(req.query)
+    return {"recommended_assessments": results}
