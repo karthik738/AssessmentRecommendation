@@ -6,6 +6,8 @@ import re
 from openai import OpenAI
 import google.generativeai as genai
 
+genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
+
 
 class SHLRecommender:
     def __init__(self, top_k=10, spell_threshold=0.7):
@@ -26,7 +28,6 @@ class SHLRecommender:
         )
         self.llm_model = "anthropic/claude-3-haiku"
 
-    import google.generativeai as genai
 
     def _embed_query(self, query: str) -> list:
         try:
